@@ -38,13 +38,24 @@ def clone_repository(repo_url: str):
     temp_dir = tempfile.mkdtemp()
 
     try:
-        Repo.clone_from(repo_url, temp_dir)
+        Repo.clone_from(
+            repo_url,
+            temp_dir,
+            depth=1,
+            single_branch=True
+        )
 
         return temp_dir
 
     except Exception as e:
-        shutil.rmtree(temp_dir, ignore_errors=True)
-        raise Exception(f"Failed to clone repository: {str(e)}")
+        shutil.rmtree(
+            temp_dir,
+            ignore_errors=True
+        )
+
+        raise Exception(
+            f"Failed to clone repository: {str(e)}"
+        )
 
 
 def read_code_files(repo_path: str):
@@ -53,7 +64,8 @@ def read_code_files(repo_path: str):
 
     for root, dirs, filenames in os.walk(repo_path):
 
-        # Remove folders we don't want to scan
+        # Ignore folders that contain generated files,
+        # dependencies, caches, or Git metadata.
         dirs[:] = [
             directory
             for directory in dirs
@@ -62,12 +74,17 @@ def read_code_files(repo_path: str):
 
         for filename in filenames:
 
-            extension = os.path.splitext(filename)[1].lower()
+            extension = os.path.splitext(
+                filename
+            )[1].lower()
 
             if extension not in SUPPORTED_EXTENSIONS:
                 continue
 
-            full_path = os.path.join(root, filename)
+            full_path = os.path.join(
+                root,
+                filename
+            )
 
             relative_path = os.path.relpath(
                 full_path,
@@ -75,7 +92,6 @@ def read_code_files(repo_path: str):
             )
 
             try:
-
                 with open(
                     full_path,
                     "r",
@@ -85,16 +101,22 @@ def read_code_files(repo_path: str):
 
                     content = file.read()
 
+                # Skip empty files
                 if not content.strip():
                     continue
 
                 files.append({
-                    "path": relative_path.replace("\\", "/"),
+                    "path": relative_path.replace(
+                        "\\",
+                        "/"
+                    ),
                     "extension": extension,
                     "content": content
                 })
 
             except Exception:
+                # If a file cannot be read,
+                # skip it instead of crashing the scan.
                 continue
 
     return files
